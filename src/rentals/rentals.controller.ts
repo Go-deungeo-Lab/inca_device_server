@@ -3,7 +3,6 @@ import {
     Get,
     Param,
     Delete,
-    Query,
     ParseIntPipe
 } from '@nestjs/common';
 import { RentalsService } from './rentals.service';
