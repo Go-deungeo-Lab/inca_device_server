@@ -1,6 +1,8 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';  // 추가
+import { AppService } from './app.service';        // 추가
 import { DevicesModule } from './devices/devices.module';
 import { RentalsModule } from './rentals/rentals.module';
 import { DeviceSeedService } from './seeds/device-seed.service';
@@ -23,7 +25,8 @@ import { Device } from './devices/entities/device.entity';
     DevicesModule,
     RentalsModule,
   ],
-  providers: [DeviceSeedService],
+  controllers: [AppController],  // 이 줄 추가
+  providers: [AppService, DeviceSeedService],  // AppService 추가
 })
 export class AppModule implements OnModuleInit {
   constructor(private readonly deviceSeedService: DeviceSeedService) {}
