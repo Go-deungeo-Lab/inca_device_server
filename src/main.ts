@@ -10,7 +10,8 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000',
       'http://localhost:3001', 
-      'https://inca-device-view.vercel.app' // 프론트엔드 배포 도메인
+      'https://inca-device-view.vercel.app',
+      'https://inca-device-view-admin.vercel.app' // 프론트엔드 배포 도메인
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
