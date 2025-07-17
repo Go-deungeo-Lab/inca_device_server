@@ -25,8 +25,8 @@ import { Device } from './devices/entities/device.entity';
       password: process.env.POSTGRES_PASSWORD || '',
       database: process.env.POSTGRES_DB || 'device_management',
       autoLoadEntities: true,
-      // 프로덕션에서는 synchronize 비활성화
-      synchronize: process.env.NODE_ENV !== 'production',
+      // 임시로 프로덕션에서도 synchronize 활성화 (첫 배포용)
+      synchronize: true,
       logging: process.env.NODE_ENV !== 'production',
       // Railway PostgreSQL SSL 설정
       ssl:
