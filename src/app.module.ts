@@ -45,7 +45,14 @@ export class AppModule implements OnModuleInit {
   constructor(private readonly deviceSeedService: DeviceSeedService) {}
 
   async onModuleInit() {
-    // 프로덕션에서도 DB가 비어있으면 초기 데이터 생성
-    await this.deviceSeedService.seedDevices();
+    // DB 연결이 완료된 후 시드 데이터 실행
+    try {
+      // 약간의 지연을 두어 DB 연결 완료 대기
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await this.deviceSeedService.seedDevices();
+    } catch (error) {
+      console.error('Module initialization error:', error);
+      // 오류가 발생해도 애플리케이션을 계속 실행
+    }
   }
 }
