@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DevicesModule } from './devices/devices.module';
 import { RentalsModule } from './rentals/rentals.module';
+import { AuthModule } from './auth/auth.module'; // 🆕 추가
 import { DeviceSeedService } from './seeds/device-seed.service';
 import { Device } from './devices/entities/device.entity';
 
@@ -37,6 +38,7 @@ import { Device } from './devices/entities/device.entity';
     TypeOrmModule.forFeature([Device]),
     DevicesModule,
     RentalsModule,
+    AuthModule, // 🆕 추가
   ],
   controllers: [AppController],
   providers: [AppService, DeviceSeedService],

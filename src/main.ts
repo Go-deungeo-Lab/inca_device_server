@@ -3,74 +3,97 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
-  // 허용된 IP 주소들 (환경 변수에서 가져오기)
-  const allowedIPs = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log'],
+  });
+
   const isProduction = process.env.NODE_ENV === 'production';
-  
-  // IP 기반 접근 제한 미들웨어
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  console.log(`🚀 Starting application in ${process.env.NODE_ENV || 'development'} mode`);
+
+  // IP 기반 접근 제한 (프로덕션에서만)
+  const allowedIPs = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
+
   if (isProduction && allowedIPs.length > 0) {
+    console.log('🔐 IP filtering enabled:', allowedIPs);
+
     app.use((req, res, next) => {
-      // 클라이언트 IP 추출 (프록시 환경 고려)
-      const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-                       req.headers['x-real-ip'] || 
-                       req.connection.remoteAddress || 
-                       req.socket.remoteAddress ||
-                       req.ip;
-      
-      console.log(`접속 시도 IP: ${clientIP}`);
-      
-      // IP 허용 목록 확인
+      const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+        req.headers['x-real-ip'] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.ip;
+
       const isAllowed = allowedIPs.some(allowedIP => {
-        // CIDR 표기법 지원 (예: 192.168.1.0/24)
         if (allowedIP.includes('/')) {
           return isIPInCIDR(clientIP, allowedIP);
         }
-        // 정확한 IP 매칭
         return clientIP === allowedIP;
       });
-      
+
       if (!isAllowed) {
-        console.log(`차단된 IP: ${clientIP}`);
-        return res.status(403).json({ 
+        console.log(`🚫 Blocked IP: ${clientIP}`);
+        return res.status(403).json({
           message: 'Access denied from this IP address',
-          ip: clientIP,
           timestamp: new Date().toISOString()
         });
       }
-      
-      console.log(`허용된 IP: ${clientIP}`);
+
       next();
     });
   }
-  
-  // CORS 설정
-  app.enableCors({
-    origin: [
+
+  // CORS 설정 (환경변수로만 관리)
+  const frontendUrls = process.env.FRONTEND_URLS?.split(',').map(url => url.trim()) || [];
+
+  // 개발환경에서만 로컬호스트 자동 추가
+  if (isDevelopment) {
+    frontendUrls.push(
       'http://localhost:3000',
-      'http://localhost:3001', 
-      'https://inca-device-view.vercel.app',
-      'https://inca-device-view-admin.vercel.app'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001'
+    );
+  }
+
+  // 프로덕션에서는 환경변수로만 CORS 도메인 관리
+  console.log('🌐 CORS enabled for:', frontendUrls.length > 0 ? frontendUrls : ['all origins (development mode)']);
+
+  app.enableCors({
+    origin: frontendUrls.length > 0 ? frontendUrls : !isProduction, // 프로덕션에서는 환경변수 필수
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
   });
 
+  // 글로벌 파이프 설정
   app.useGlobalPipes(new ValidationPipe({
     transform: true,
     whitelist: true,
+    forbidNonWhitelisted: !isDevelopment,
   }));
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
-  
-  if (isProduction) {
-    console.log('Production mode - IP filtering enabled');
-    console.log('Allowed IPs:', allowedIPs);
-  } else {
-    console.log('Development mode - IP filtering disabled');
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`✅ Application is running on: http://localhost:${port}`);
+  console.log(`📊 Health check: http://localhost:${port}/health`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+
+  if (frontendUrls.length > 0) {
+    console.log(`🌐 CORS origins: ${frontendUrls.join(', ')}`);
+  } else if (isProduction) {
+    console.warn('⚠️  WARNING: No FRONTEND_URLS set in production! CORS will block all requests.');
+  }
+
+  if (isDevelopment) {
+    console.log(`🧪 Test login: POST http://localhost:${port}/auth/login`);
+    console.log(`📱 Available devices: GET http://localhost:${port}/devices/available`);
+  }
+
+  if (isProduction && allowedIPs.length > 0) {
+    console.log('🔒 IP filtering active for:', allowedIPs);
   }
 }
 
@@ -79,10 +102,10 @@ function isIPInCIDR(ip: string, cidr: string): boolean {
   try {
     const [network, prefixLength] = cidr.split('/');
     const mask = (0xffffffff << (32 - parseInt(prefixLength))) >>> 0;
-    
+
     const ipNum = ipToNumber(ip);
     const networkNum = ipToNumber(network);
-    
+
     return (ipNum & mask) === (networkNum & mask);
   } catch (error) {
     console.error('CIDR parsing error:', error);
@@ -95,4 +118,7 @@ function ipToNumber(ip: string): number {
   return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
 }
 
-bootstrap();
+bootstrap().catch(error => {
+  console.error('❌ Application failed to start:', error);
+  process.exit(1);
+});

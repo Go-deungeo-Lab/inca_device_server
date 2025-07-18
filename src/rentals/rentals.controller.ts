@@ -1,7 +1,16 @@
-import { Controller, Get, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { RentalsService } from './rentals.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'; // 🆕 추가
 
 @Controller('rentals')
+@UseGuards(JwtAuthGuard) // 🆕 모든 대여 관련 API는 매니저 전용
 export class RentalsController {
   constructor(private readonly rentalsService: RentalsService) {}
 
@@ -65,7 +74,7 @@ export class RentalsController {
     return this.rentalsService.findOne(id);
   }
 
-  // 대여 기록 삭제 (관리자용)
+  // 대여 기록 삭제 (매니저용)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.rentalsService.remove(id);
