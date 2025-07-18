@@ -49,12 +49,11 @@ export class DevicesController {
     return this.devicesService.getUserRentedDevices(renterName);
   }
 
-  // 사용자 디바이스 반납 (QA 비밀번호만 필요)
+  // ✅ 사용자 디바이스 반납 (이름만 입력하면 OK - QA 비밀번호 제거)
   @Post('user-return/:id')
-  @UseGuards(QaPasswordGuard)
   userReturnDevice(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { renterName: string; password: string },
+    @Body() body: { renterName: string },
   ) {
     return this.devicesService.returnDevice(id, body.renterName);
   }
