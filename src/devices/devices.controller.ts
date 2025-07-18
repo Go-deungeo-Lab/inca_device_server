@@ -23,28 +23,27 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
-  // 🔓 공개 API (사용자용) - 구체적인 라우트를 먼저 정의
+  // 🔓 공개 API (사용자용) - 인증 불필요
 
-  // 대여 가능한 디바이스 조회 (공개)
+  // 모든 디바이스 조회 (사용자용 - 상태 정보 포함)
+  @Get('all')
+  getAllDevicesForUser() {
+    return this.devicesService.findAllForUser();
+  }
+
+  // 대여 가능한 디바이스만 조회 (사용자용)
   @Get('available')
   getAvailableDevices() {
     return this.devicesService.getAvailableDevices();
   }
 
-  // 대여 중인 디바이스 조회 (매니저 전용)
-  @Get('rented')
-  @UseGuards(JwtAuthGuard)
-  getRentedDevices() {
-    return this.devicesService.getRentedDevices();
-  }
-
-  // 디바이스 대여 (공개)
+  // 디바이스 대여 (사용자용)
   @Post('rent')
   rentDevices(@Body() rentDeviceDto: RentDeviceDto) {
     return this.devicesService.rentDevices(rentDeviceDto);
   }
 
-  // 사용자별 대여중인 디바이스 조회 (공개)
+  // 사용자별 대여중인 디바이스 조회 (사용자용)
   @Get('user/:renterName/rented')
   getUserRentedDevices(@Param('renterName') renterName: string) {
     return this.devicesService.getUserRentedDevices(renterName);
@@ -60,41 +59,37 @@ export class DevicesController {
     return this.devicesService.returnDevice(id, body.renterName);
   }
 
-  // 매니저 디바이스 반납 (JWT + QA 비밀번호 필요)
-  @Post('return/:id')
-  @UseGuards(JwtAuthGuard, QaPasswordGuard)
-  returnDevice(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() returnDeviceDto: ReturnDeviceDto,
-  ) {
-    return this.devicesService.returnDevice(id, returnDeviceDto.renterName);
-  }
-
-  // 🔒 매니저 전용 API (JWT 인증 필요)
-
-  // 모든 디바이스 조회 (매니저 전용) - 동적 라우트보다 먼저 배치!
-  @Get()
-  @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.devicesService.findAll();
-  }
-
-  // 디바이스 생성 (매니저 전용)
-  @Post()
-  @UseGuards(JwtAuthGuard)
-  create(@Body() createDeviceDto: CreateDeviceDto) {
-    return this.devicesService.create(createDeviceDto);
-  }
-
-  // ⚠️ 중요: 동적 라우트는 가장 마지막에 배치
-  // 특정 디바이스 조회 (공개)
+  // 특정 디바이스 조회 (사용자용)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.devicesService.findOne(id);
   }
 
-  // 디바이스 수정 (매니저 전용)
-  @Patch(':id')
+  // 🔒 관리자 전용 API (JWT 인증 필요)
+
+  // 모든 디바이스 조회 (관리자용 - 상세 정보 포함)
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard)
+  findAllForAdmin() {
+    return this.devicesService.findAllForAdmin();
+  }
+
+  // 대여 중인 디바이스 조회 (관리자용)
+  @Get('admin/rented')
+  @UseGuards(JwtAuthGuard)
+  getRentedDevices() {
+    return this.devicesService.getRentedDevices();
+  }
+
+  // 디바이스 생성 (관리자용)
+  @Post('admin/create')
+  @UseGuards(JwtAuthGuard)
+  create(@Body() createDeviceDto: CreateDeviceDto) {
+    return this.devicesService.create(createDeviceDto);
+  }
+
+  // 디바이스 수정 (관리자용)
+  @Patch('admin/:id')
   @UseGuards(JwtAuthGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -103,10 +98,20 @@ export class DevicesController {
     return this.devicesService.update(id, updateDeviceDto);
   }
 
-  // 디바이스 삭제 (매니저 전용)
-  @Delete(':id')
+  // 디바이스 삭제 (관리자용)
+  @Delete('admin/:id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.devicesService.remove(id);
+  }
+
+  // 관리자용 디바이스 반납 (JWT + QA 비밀번호 필요)
+  @Post('admin/return/:id')
+  @UseGuards(JwtAuthGuard, QaPasswordGuard)
+  adminReturnDevice(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() returnDeviceDto: ReturnDeviceDto,
+  ) {
+    return this.devicesService.returnDevice(id, returnDeviceDto.renterName);
   }
 }
