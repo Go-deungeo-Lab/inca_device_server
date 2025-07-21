@@ -34,9 +34,7 @@ export class SystemController {
   @Put('config')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async updateSystemConfig(
-    @Body() updateDto: UpdateSystemConfigDto
-  ): Promise<{
+  async updateSystemConfig(@Body() updateDto: UpdateSystemConfigDto): Promise<{
     message: string;
     config: SystemConfig;
   }> {
