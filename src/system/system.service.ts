@@ -58,7 +58,9 @@ export class SystemService {
   }
 
   // 🔒 관리자용 - 시스템 설정 업데이트
-  async updateSystemConfig(updateDto: UpdateSystemConfigDto): Promise<SystemConfig> {
+  async updateSystemConfig(
+    updateDto: UpdateSystemConfigDto,
+  ): Promise<SystemConfig> {
     const config = await this.getSystemConfig();
 
     // 데이터 업데이트
