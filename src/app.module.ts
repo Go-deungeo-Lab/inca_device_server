@@ -1,3 +1,4 @@
+// src/app.module.ts (업데이트)
 import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -5,7 +6,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DevicesModule } from './devices/devices.module';
 import { RentalsModule } from './rentals/rentals.module';
-import { AuthModule } from './auth/auth.module'; // 🆕 추가
+import { AuthModule } from './auth/auth.module';
+import { SystemModule } from './system/system.module'; // 🆕 추가
 import { DeviceSeedService } from './seeds/device-seed.service';
 import { Device } from './devices/entities/device.entity';
 
@@ -35,10 +37,11 @@ import { Device } from './devices/entities/device.entity';
           ? { rejectUnauthorized: false }
           : false,
     }),
-    TypeOrmModule.forFeature([Device]),
+    TypeOrmModule.forFeature([Device]), // SystemConfig 제거 (SystemModule에서 관리)
+    SystemModule, // 🆕 먼저 추가
+    AuthModule,
     DevicesModule,
     RentalsModule,
-    AuthModule, // 🆕 추가
   ],
   controllers: [AppController],
   providers: [AppService, DeviceSeedService],
