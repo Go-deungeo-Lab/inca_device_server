@@ -1,12 +1,15 @@
+// src/devices/devices.service.ts (업데이트)
 import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from './entities/device.entity';
 import { Rental } from '../rentals/entities/rental.entity';
+import { SystemService } from '../system/system.service';
 import {
   CreateDeviceDto,
   UpdateDeviceDto,
@@ -20,6 +23,7 @@ export class DevicesService {
     private deviceRepository: Repository<Device>,
     @InjectRepository(Rental)
     private rentalRepository: Repository<Rental>,
+    private systemService: SystemService, // 🆕 SystemService 주입
   ) {}
 
   // 🔓 사용자용 - 모든 디바이스 조회 (기본 정보만)
@@ -34,11 +38,11 @@ export class DevicesService {
         'platform',
         'isRootedOrJailbroken',
         'status',
-        'currentRenter'
+        'currentRenter',
       ],
       order: {
         status: 'ASC', // available이 먼저 오도록
-        id: 'ASC'
+        id: 'ASC',
       },
     });
   }
@@ -64,7 +68,7 @@ export class DevicesService {
         'platform',
         'isRootedOrJailbroken',
         'status',
-        'currentRenter'
+        'currentRenter',
       ],
     });
 
@@ -129,13 +133,26 @@ export class DevicesService {
     await this.deviceRepository.remove(device);
   }
 
-  // 🔓 사용자용 - 디바이스 대여
+  // 🔓 사용자용 - 디바이스 대여 (테스트 모드 확인 추가)
   async rentDevices(rentDeviceDto: RentDeviceDto): Promise<Device[]> {
+    // 🆕 테스트 모드 확인
+    const isTestModeActive = await this.systemService.isTestModeActive();
+    if (isTestModeActive) {
+      const systemStatus = await this.systemService.getSystemStatus();
+      const errorMessage = systemStatus.testMessage
+        ? `현재 ${systemStatus.testType || '테스트'} 기간입니다. ${systemStatus.testMessage}`
+        : '현재 시스템 테스트 기간으로 디바이스 대여가 제한됩니다. 관리자에게 문의해주세요.';
+
+      throw new ServiceUnavailableException(errorMessage);
+    }
+
     const { deviceIds, renterName } = rentDeviceDto;
     const rentedDevices: Device[] = [];
 
     for (const deviceId of deviceIds) {
-      const device = await this.deviceRepository.findOne({ where: { id: deviceId } });
+      const device = await this.deviceRepository.findOne({
+        where: { id: deviceId },
+      });
 
       if (!device) {
         throw new NotFoundException(`Device with ID ${deviceId} not found`);
@@ -166,9 +183,11 @@ export class DevicesService {
     return rentedDevices;
   }
 
-  // 🔓 사용자용 - 디바이스 반납
+  // 🔓 사용자용 - 디바이스 반납 (테스트 모드와 관계없이 항상 가능)
   async returnDevice(deviceId: number, renterName: string): Promise<Device> {
-    const device = await this.deviceRepository.findOne({ where: { id: deviceId } });
+    const device = await this.deviceRepository.findOne({
+      where: { id: deviceId },
+    });
 
     if (!device) {
       throw new NotFoundException(`Device with ID ${deviceId} not found`);
@@ -220,7 +239,7 @@ export class DevicesService {
         'osVersion',
         'platform',
         'isRootedOrJailbroken',
-        'status'
+        'status',
       ],
       order: { id: 'ASC' },
     });
@@ -251,7 +270,7 @@ export class DevicesService {
         'platform',
         'isRootedOrJailbroken',
         'status',
-        'currentRenter'
+        'currentRenter',
       ],
       order: { id: 'ASC' },
     });
