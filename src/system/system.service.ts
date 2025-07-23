@@ -3,7 +3,6 @@ import { Injectable, MessageEvent } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Observable, Subject, interval } from 'rxjs';
-import { map, startWith, distinctUntilChanged } from 'rxjs/operators';
 import { SystemConfig } from './entities/system-config.entity';
 import { UpdateSystemConfigDto, SystemStatusDto } from './dto/system.dto';
 
