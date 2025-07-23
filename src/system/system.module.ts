@@ -1,4 +1,3 @@
-// src/system/system.module.ts
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SystemController } from './system.controller';
