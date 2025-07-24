@@ -14,7 +14,7 @@ import {
   CreateDeviceDto,
   UpdateDeviceDto,
   RentDeviceDto,
-  ReturnDeviceDto,
+  ReturnDeviceDto, ReturnMultipleDevicesDto,
 } from './dto/devices.dto';
 import { QaPasswordGuard } from '../common/guards/qa-password.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -56,6 +56,12 @@ export class DevicesController {
     @Body() body: { renterName: string },
   ) {
     return this.devicesService.returnDevice(id, body.renterName);
+  }
+
+  // 사용자 디바이스 일괄 반납
+  @Post('user-return-multiple')
+  userReturnMultipleDevices(@Body() returnDto: ReturnMultipleDevicesDto) {
+    return this.devicesService.returnMultipleDevices(returnDto);
   }
 
   // 특정 디바이스 조회 (사용자용)
@@ -113,4 +119,6 @@ export class DevicesController {
   ) {
     return this.devicesService.returnDevice(id, returnDeviceDto.renterName);
   }
+
+
 }

@@ -14,6 +14,7 @@ import {
   CreateDeviceDto,
   UpdateDeviceDto,
   RentDeviceDto,
+  ReturnMultipleDevicesDto,
 } from './dto/devices.dto';
 
 @Injectable()
@@ -225,6 +226,99 @@ export class DevicesService {
     await this.deviceRepository.save(device);
 
     return device;
+  }
+
+  // 🔓 사용자용 - 다중 디바이스 일괄 반납
+  async returnMultipleDevices(returnDto: ReturnMultipleDevicesDto): Promise<{
+    success: Device[];
+    failed: { deviceId: number; reason: string }[];
+    summary: {
+      totalRequested: number;
+      successCount: number;
+      failedCount: number;
+    };
+  }> {
+    const { deviceIds, renterName } = returnDto;
+    const successDevices: Device[] = [];
+    const failedDevices: { deviceId: number; reason: string }[] = [];
+
+    // 각 디바이스에 대해 반납 시도
+    for (const deviceId of deviceIds) {
+      try {
+        const device = await this.deviceRepository.findOne({
+          where: { id: deviceId },
+        });
+
+        if (!device) {
+          failedDevices.push({
+            deviceId,
+            reason: '디바이스를 찾을 수 없습니다.',
+          });
+          continue;
+        }
+
+        if (device.status !== 'rented') {
+          failedDevices.push({
+            deviceId,
+            reason: '현재 대여 중인 디바이스가 아닙니다.',
+          });
+          continue;
+        }
+
+        if (device.currentRenter !== renterName) {
+          failedDevices.push({
+            deviceId,
+            reason: '대여자 이름이 일치하지 않습니다.',
+          });
+          continue;
+        }
+
+        // 활성 대여 기록 찾기
+        const activeRental = await this.rentalRepository.findOne({
+          where: {
+            deviceId: device.id,
+            status: 'active',
+            renterName: renterName,
+          },
+        });
+
+        if (!activeRental) {
+          failedDevices.push({
+            deviceId,
+            reason: '활성 대여 기록을 찾을 수 없습니다.',
+          });
+          continue;
+        }
+
+        // 대여 기록 업데이트
+        activeRental.status = 'returned';
+        activeRental.returnedAt = new Date();
+        await this.rentalRepository.save(activeRental);
+
+        // 디바이스 상태 업데이트
+        device.status = 'available';
+        device.currentRenter = null;
+        const returnedDevice = await this.deviceRepository.save(device);
+
+        successDevices.push(returnedDevice);
+      } catch (error) {
+        console.error(`디바이스 ${deviceId} 반납 중 오류:`, error);
+        failedDevices.push({
+          deviceId,
+          reason: '서버 오류가 발생했습니다.',
+        });
+      }
+    }
+
+    return {
+      success: successDevices,
+      failed: failedDevices,
+      summary: {
+        totalRequested: deviceIds.length,
+        successCount: successDevices.length,
+        failedCount: failedDevices.length,
+      },
+    };
   }
 
   // 🔓 사용자용 - 대여 가능한 디바이스 조회
