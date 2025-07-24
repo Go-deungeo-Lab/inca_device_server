@@ -14,7 +14,8 @@ import {
   CreateDeviceDto,
   UpdateDeviceDto,
   RentDeviceDto,
-  ReturnDeviceDto, ReturnMultipleDevicesDto,
+  ReturnDeviceDto,
+  ReturnMultipleDevicesDto,
 } from './dto/devices.dto';
 import { QaPasswordGuard } from '../common/guards/qa-password.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -119,6 +120,4 @@ export class DevicesController {
   ) {
     return this.devicesService.returnDevice(id, returnDeviceDto.renterName);
   }
-
-
 }
